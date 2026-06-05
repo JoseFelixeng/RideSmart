@@ -197,18 +197,17 @@ Projeto desenvolvido para a disciplina de **Estrutura de Dados II**, explorando 
 
 ---
 
-## 👨‍💻 Autor
+##  Informações 
 
-Felix Estudos
-
-Curso de Engenharia da Computação
-
+Curso de Engenheria da Computação
 Universidade Federal do Rio Grande do Norte (UFRN)
 
+Componentes: 
+
+José Felix Rodrigues Anselmo
+Lucas Henrique 
+Laise 
+Felipe Gabriel
 ---
 
-## 📄 Licença
-
-Este projeto possui finalidade acadêmica e educacional.
-Todos os dados geográficos utilizados são provenientes do OpenStreetMap.
-
+Este projeto foi desenvolvido como projeto final da disciplina de Algoritmos e Estruturas de Dados 2, com o intuito de colocar em pratica os elementos vistos em aula, todos os dados utilizados vem da Biblioteca OSMnx.
