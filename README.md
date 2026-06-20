@@ -1,175 +1,193 @@
-# RideSmart (EasyPath) — Modelagem e Análise de Rotas Urbanas com Grafos
+# 🚗 RideSmart — Modelagem e Análise de Rotas Urbanas com Grafos
 
-Projeto final da disciplina de **Teoria dos Grafos / Algoritmos em Grafos** — UFRN, 2026.
-
-O projeto simula um problema inspirado em aplicativos de mobilidade urbana (estilo *ride-sharing*):
-
-> Dado um ponto de origem **A**, um destino **B** e uma distância máxima que o usuário aceita caminhar, escolher o melhor ponto de embarque **P**, de forma que a rota completa **A → P (a pé) → B (carro)** seja a mais vantajosa possível.
-
-O grafo urbano utilizado é a malha viária real de **Natal, Rio Grande do Norte, Brasil**, obtida via [OSMnx](https://osmnx.readthedocs.io/) a partir dos dados do OpenStreetMap.
+Projeto final desenvolvido para a disciplina de **Teoria dos Grafos**, com o objetivo de simular a lógica de escolha de rota de um aplicativo de mobilidade urbana sobre a malha viária real de **Natal/RN**, usando grafos, algoritmos de caminho mínimo e um modelo de trânsito sintético.
 
 ---
 
-## 👥 Integrantes
+## 👨‍💻 Integrantes
 
-- Felipe Gabriel
-- José Felix Rodrigues Anselmo
-- Laize
-- Lucas Henrique
+* Felipe Gabriel
+* José Felix
+* Laize
+* Lucas Henrique Alves de Queiroz
 
----
-
-## 📋 Sumário
-
-- [Visão geral do problema](#-visão-geral-do-problema)
-- [Modelagem do grafo](#-modelagem-do-grafo)
-- [Algoritmos implementados](#-algoritmos-implementados)
-- [Trânsito sintético](#-trânsito-sintético)
-- [Cenários comparados](#-cenários-comparados)
-- [Visualizações](#-visualizações)
-- [Como executar](#-como-executar)
-- [Estrutura do repositório](#-estrutura-do-repositório)
-- [Referências](#-referências)
+> ⚠️ Nomes completos pendentes de confirmação — ver observação ao final deste documento.
 
 ---
 
-## 🧭 Visão geral do problema
+## 🎯 Objetivo
 
-A rota completa é composta por dois trechos:
+Dado um ponto de origem `A`, um destino `B` e uma distância máxima de caminhada `X`, o sistema escolhe o melhor ponto de embarque `P` (acessível a pé a partir de `A`, dentro do limite `X`) tal que a rota completa **A → P (caminhada) → P → B (carro)** seja a mais vantajosa, segundo diferentes critérios de custo.
 
-```text
-A → P   caminhada
-P → B   carro
+O projeto cobre:
+
+* modelagem da rede viária de Natal como grafo (OSMnx + NetworkX);
+* implementação de 4 algoritmos de caminho mínimo, do zero;
+* um modelo de trânsito sintético calibrado por tipo de via (BPR + capacidade HCM + centralidade + hotspots geográficos);
+* comparação de 5 cenários de roteamento exigidos pelo enunciado;
+* análise crítica dos resultados obtidos.
+
+---
+
+## 📂 Estrutura do Projeto
+
+```
+RideSmart/
+│
+├── RideSmart.ipynb              # Notebook principal, executável de ponta a ponta
+├── README.md
+│
+└── saidas/                      # Gerado automaticamente na execução
+    ├── mapa_transito_sintetico.png
+    ├── distribuicoes_trafego.png
+    ├── rotas_ridesmart.png
+    ├── rota_dijkstra_simples.png
+    ├── rota_dijkstra_heap.png
+    ├── rota_aastar.png
+    └── rota_bellman-ford.png
 ```
 
-O usuário informa uma distância máxima de caminhada **X** (em metros). O algoritmo:
+---
 
-1. Filtra todos os pontos de embarque candidatos (`pickup_nodes`) que estejam a no máximo **X** metros de caminhada da origem **A**;
-2. Para cada candidato **P**, calcula o custo total da rota `A → P` (a pé) + `P → B` (carro);
-3. Escolhe o ponto **P** com o menor custo total.
+## ⚙️ Instalação
 
-O notebook compara cinco cenários (rota mais curta, rota mais rápida sem/com trânsito, rota sem caminhada, e o ganho obtido ao caminhar até um ponto de embarque alternativo) e quatro algoritmos clássicos de caminho mínimo.
+O notebook foi desenvolvido para rodar em **Google Colab** ou **Jupyter local** (Python 3.11).
+
+```bash
+pip install osmnx networkx matplotlib numpy
+```
+
+Todas as demais dependências (`heapq`, `math`, `random`, `time`) fazem parte da biblioteca padrão do Python.
 
 ---
 
-## 🗺️ Modelagem do grafo
+## ▶️ Execução
 
-- **Nós**: interseções e cruzamentos das vias de Natal/RN.
-- **Arestas**: segmentos de via (ruas, avenidas), com os seguintes pesos:
-  - `length` — distância em metros;
-  - `travel_time` — tempo de percurso em segundos, calculado a partir da velocidade da via;
-  - `traffic_time` — tempo de percurso considerando o modelo de trânsito sintético.
+Abra `RideSmart.ipynb` e execute todas as células **em ordem** (`Ambiente de execução → Executar tudo`, no Colab, ou `Kernel → Restart & Run All`, no Jupyter). O notebook baixa o grafo viário de Natal/RN via OSMnx na primeira execução — esse passo pode levar alguns minutos dependendo da conexão.
 
-São utilizados dois grafos:
-
-- **Grafo de direção** (`network_type="drive"`) — para os trechos de carro;
-- **Grafo pedestre** (`network_type="walk"`) — para os trechos de caminhada `A → P`.
-
-Os pontos de embarque (`pickup_nodes`) são obtidos a partir de pontos de interesse reais do OpenStreetMap (pontos de táxi, estacionamentos, locadoras de veículos) e, caso insuficientes, complementados por amostragem de nós do grafo de direção.
+> ⚠️ A célula do modelo de trânsito sintético (`apply_synthetic_traffic`) precisa rodar **depois** de qualquer célula que recrie o grafo `G` do zero. Caso contrário, o atributo `traffic_time` fica ausente nas arestas e o Cenário 3 falha silenciosamente. Rodar tudo em ordem, de cima para baixo, evita esse problema.
 
 ---
 
-## ⚙️ Algoritmos implementados
+## 🔄 Metodologia
 
-Foram implementados, **do zero**, quatro algoritmos de caminho mínimo, todos parametrizados pelo atributo de peso (`weight`), permitindo reutilizá-los com `length`, `travel_time` ou `traffic_time`:
-
-| # | Algoritmo | Complexidade | Observações |
-|---|-----------|---------------|-------------|
-| 1 | **Dijkstra Simples** | O(V²) | Implementação sem fila de prioridade, usada como linha de base |
-| 2 | **Dijkstra com Heap** | O((V+E) log V) | Implementação com `heapq`, usada como referência de eficiência |
-| 3 | **A\*** | O((V+E) log V) (na prática, menos nós expandidos) | Heurística geográfica baseada na distância de Haversine até o destino |
-| 4 | **Bellman-Ford** (algoritmo adicional) | O(V·E) | Suporta pesos negativos (não utilizados aqui); relaxa todas as arestas V−1 vezes, com detecção de ciclo negativo |
-
-Todos os quatro algoritmos são comparados em termos de **distância encontrada**, **tempo de execução** e (quando aplicável) **número de nós expandidos**, garantindo que todos cheguem ao mesmo custo ótimo — usado como verificação de corretude das implementações.
+1. **Aquisição do grafo** — download da malha viária de Natal/RN via `ox.graph_from_place`, nos modos `drive` (carro) e `walk` (pedestre).
+2. **Coleta de pontos de embarque** — POIs de táxi e estacionamento via `ox.features.features_from_place`, mapeados para os nós mais próximos do grafo de carro.
+3. **Modelo de trânsito sintético** — classificação das vias (incluindo identificação de BRs federais), atribuição de capacidade (HCM), centralidade de intermediação (Brandes), hotspots geográficos ancorados nos principais corredores da cidade, fluxo OD sintético e função BPR calibrada por categoria de via.
+4. **Implementação dos algoritmos** — Dijkstra simples (O(V²)), Dijkstra com heap (O((V+E) log V)), A* com heurística Haversine, e Bellman-Ford como algoritmo adicional da literatura.
+5. **Seleção do ponto de embarque** — busca do `P` ótimo entre os candidatos alcançáveis a pé, minimizando o custo total da rota composta.
+6. **Comparação dos 5 cenários** — menor distância, mais rápido sem trânsito, mais rápido com trânsito sintético, rota direta sem caminhada, e ganho obtido ao caminhar.
+7. **Visualização** — mapa de congestionamento da cidade, histogramas de distribuição do modelo de tráfego, e um painel individual por algoritmo mostrando a rota A→P→B sobre o grafo.
 
 ---
 
-## 🚦 Trânsito sintético
+## 🧩 Modelagem do Grafo
 
-Para simular um congestionamento espacialmente realista e academicamente justificável, o peso `traffic_time` combina **6 componentes**:
-
-| Componente | Referência |
+| Elemento | Representação |
 |---|---|
-| Capacidade por classe de via (`highway`) | HCM 6th Ed. (TRB, 2016) |
-| Fator temporal por período do dia | DNIT — Manual de Estudos de Tráfego (2006) |
-| Centralidade de intermediação das arestas (k-sampling) | Brandes (2001), *J. Math. Sociology* |
-| Hotspots com decaimento gaussiano espacial | Sheffi (1985), *Urban Transportation Networks* |
-| Fluxo OD sintético (equilíbrio de Wardrop) | Wardrop (1952), *Proc. ICE* |
-| Função BPR | Bureau of Public Roads (1964) |
+| Nós | Interseções e cruzamentos de ruas de Natal/RN |
+| Arestas | Segmentos de via entre interseções |
+| Peso `length` | Distância em metros |
+| Peso `travel_time` | Tempo de percurso sem trânsito (segundos) |
+| Peso `traffic_time` | Tempo de percurso com trânsito sintético (segundos), via função BPR |
 
-A função final aplicada a cada aresta é:
-
-```
-traffic_time = BPR(travel_time, fluxo_efetivo, capacidade)
-fluxo_efetivo = capacidade · 0.4 · tf · (1 + 2·bet) · (1 + 2·hs) + od_contrib
-```
-
-onde `tf` é o fator temporal do período do dia, `bet` é a centralidade de intermediação normalizada e `hs` é o fator de hotspot espacial.
+O grafo de carro (`G`) e o grafo pedestre (`G_walk`) são tratados separadamente; a rota final combina um trecho em cada um deles.
 
 ---
 
-## 🧪 Cenários comparados
+## 🚦 Algoritmos Implementados
 
-| # | Cenário | Peso usado |
-|---|---------|-----------|
-| 1 | Menor distância total | `length` |
-| 2 | Rota mais rápida sem trânsito | `travel_time` |
-| 3 | Rota mais rápida com trânsito sintético | `traffic_time` |
-| 4 | Sem caminhada (carro direto A→B) | `length` / `travel_time` |
-| 5 | Ganho obtido ao caminhar até um ponto de embarque alternativo | comparação entre P ótimo e P = origem |
-
----
-
-## 📊 Visualizações
-
-O notebook gera dois tipos de visualização sobre o mapa de Natal:
-
-1. **Visão geral das rotas** — comparação `Dijkstra Heap vs A*` e `rota direta A→B vs rota com embarque A→P→B`, sobre o grafo completo;
-2. **Comparação visual com zoom (2×2)** — um painel por algoritmo (Dijkstra Simples, Dijkstra com Heap, A* e Bellman-Ford), mostrando o trajeto completo `A → P` (caminhada) + `P → B` (carro) sobre um subgrafo recortado em torno do ponto de embarque escolhido. A figura é exportada como `rotas_zoom_4algoritmos.png`.
+| Algoritmo | Complexidade | Papel no projeto |
+|---|---|---|
+| Dijkstra Simples | O(V²) | Linha de base, sem estrutura de dados auxiliar |
+| Dijkstra com Heap | O((V+E) log V) | Versão otimizada com fila de prioridade |
+| A* (heurística Haversine) | O((V+E) log V) | Busca direcionada ao destino |
+| Bellman-Ford | O(V·E) | Algoritmo adicional; robusto a pesos negativos, usado como referência de corretude |
 
 ---
 
-## ▶️ Como executar
+## 📊 Resultados (última execução)
 
-O notebook foi desenvolvido e testado no **Google Colab**, mas pode ser executado em qualquer ambiente Jupyter com Python 3.
+**Grafo de Natal/RN:** 18.581 nós, 48.193 arestas. 691 POIs de embarque coletados (19 táxis + 672 estacionamentos), mapeados para 570 nós únicos.
 
-1. Abra o notebook `RideSmart.ipynb` no Google Colab (ou Jupyter local);
-2. Execute as células em ordem, do início ao fim (a primeira célula instala a dependência `osmnx`);
-3. Na seção **5. Definição de Origem (A) e Destino (B)**, ajuste as variáveis `ENDERECO_ORIGEM` e `ENDERECO_DESTINO` para os endereços desejados (qualquer endereço reconhecível pelo geocodificador do OpenStreetMap/Nominatim);
-4. As demais células executam automaticamente: carregamento do grafo de Natal, geração do trânsito sintético, execução e comparação dos quatro algoritmos, seleção do ponto de embarque ótimo para os cinco cenários, e geração das visualizações.
+**Origem (A):** Praia Shopping — **Destino (B):** CMEI Professora Francisca Célia Martins de Souza (zona norte), ≈ 19,2 km em linha de carro.
 
-> ⚠️ **Atenção**: o download do grafo de Natal e o cálculo do Dijkstra Simples (O(V²)) sobre o grafo completo podem levar alguns minutos. O cache do OSMnx (`ox.settings.use_cache = True`) é utilizado para evitar downloads repetidos.
+### Comparação dos algoritmos (rota direta A→B, peso `length`)
 
-### Dependências principais
+| Algoritmo | Distância | Tempo de execução | Nós expandidos |
+|---|---:|---:|---:|
+| Dijkstra Simples | 19.155,8 m | 41,951 s | — |
+| Dijkstra Heap | 19.155,8 m | 0,216 s | — |
+| A* | 19.155,8 m | 0,107 s | 7.311 |
+| Bellman-Ford* | 19.155,8 m | 11,425 s | — |
 
-- `osmnx`
-- `networkx`
-- `matplotlib`
-- `numpy`
+*Bellman-Ford executado em subgrafo local (raio ≈ 23 km) por questão de desempenho.*
+
+Os quatro algoritmos convergiram para exatamente a mesma distância, validando a corretude das implementações. O Dijkstra com Heap foi **~194× mais rápido** que o Dijkstra Simples e **~53× mais rápido** que o Bellman-Ford. O A* expandiu apenas 7.311 dos 18.581 nós do grafo — **60,7% a menos** — graças à heurística geográfica admissível.
+
+### Comparação dos 5 cenários
+
+| Cenário | P escolhido | Caminhada | Carro | Total |
+|---|---|---:|---:|---:|
+| 1 — Menor distância | 503307536 | 219,0 m | 18.825,5 m | 19.044,4 m |
+| 2 — Mais rápido sem trânsito | 502216497 | 211,5 s | 1.005,3 s | 1.216,8 s |
+| 3 — Mais rápido com trânsito sintético | 3801130604 | 496,2 s | 1.086,9 s | 1.583,1 s |
+| 4 — Direto, sem caminhada | — | — | — | 19.155,8 m |
+| 5 — Ganho ao caminhar | — | — | — | **+111,4 m** (positivo) |
+
+O trânsito sintético elevou o custo total da rota em **+30,1%** em relação ao cenário sem trânsito (1.583,1 s vs. 1.216,8 s), e **deslocou o ponto de embarque ótimo** de um nó para outro completamente diferente (`502216497` → `3801130604`) — evidência direta de que o modelo de tráfego influencia a decisão de roteamento, não apenas o tempo total estimado.
+
+### Modelo de trânsito sintético
+
+CF médio: 1,017 · CF máximo: 2,286 · 87,9% das vias em condição livre (CF<1,2), 12,0% moderada, 0,1% intensa, 0% congestionada.
+
+| Categoria de via | CF médio | CF máximo | Nº de arestas |
+|---|---:|---:|---:|
+| BR federal | 1,62 | 2,29 | 388 |
+| Arterial principal | 1,52 | 1,78 | 46 |
+| Arterial | 1,25 | 1,68 | 2.013 |
+| Coletora | 1,11 | 1,50 | 9.556 |
+| Local | 0,97 | 1,35 | 36.190 |
+
+As BRs concentram o maior congestionamento sintético da cidade, como esperado dado seu papel de corredores estruturais de Natal.
 
 ---
 
-## 📁 Estrutura do repositório
+## 🔍 Análise Crítica e Limitações
 
-```
-.
-├── RideSmart.ipynb              # Notebook principal do projeto
-├── rotas_zoom_4algoritmos.png   # Figura 2x2 gerada pela Seção 13
-├── relatorio/                   # Relatório curto em formato IEEE (PDF)
-└── README.md                    # Este arquivo
-```
+* O modelo de trânsito é sintético, calibrado por proxies (capacidade HCM, centralidade, hotspots geográficos), não por dados reais de tráfego.
+* O Cenário 3 depende da execução prévia, sobre o mesmo objeto `G`, da célula de trânsito sintético — se o grafo for recriado sem reaplicar o modelo, o atributo `traffic_time` fica ausente e a busca falha silenciosamente, retornando "sem candidatos" mesmo havendo pontos de embarque válidos.
+* Os Cenários 2 e 3 filtram candidatos comparando `max_walk_m` (configurado em metros) contra `travel_time`, que está em **segundos** — uma mistura de unidades que torna o limite de caminhada efetivamente mais permissivo (~700 m a ~1,4 m/s) do que os 500 m nominais usados no Cenário 1.
+* A busca do ponto de embarque ótimo roda um Dijkstra completo por candidato dentro de um laço; com centenas de candidatos isso já custa dezenas de segundos por cenário — uma busca única a partir do destino, no grafo invertido, reduziria esse custo para frações de segundo.
+* Os pontos de embarque dependem da cobertura de POIs do OpenStreetMap, que pode estar incompleta em algumas regiões da cidade.
+* O fluxo OD sintético é gerado por amostragem aleatória de pares origem-destino, sem calibração contra dados reais de demanda.
+* Os grafos de carro e pedestre são tratados de forma independente, sem modelar tempos de espera, semáforos ou travessias.
+
+---
+
+## 🧠 Tecnologias
+
+* Python 3.11
+* OSMnx
+* NetworkX
+* Matplotlib
+* NumPy
 
 ---
 
 ## 📚 Referências
 
-- Boeing, G. (2017). OSMnx: New methods for acquiring, constructing, analyzing, and visualizing complex street networks. *Computers, Environment and Urban Systems*, 65, 126-139.
-- Cormen, T. H. et al. (2009). *Introduction to Algorithms* (3rd ed.). MIT Press.
-- Hart, P. E., Nilsson, N. J., & Raphael, B. (1968). A formal basis for the heuristic determination of minimum cost paths. *IEEE Transactions on Systems Science and Cybernetics*, 4(2), 100-107.
-- Bellman, R. (1958). On a routing problem. *Quarterly of Applied Mathematics*, 16(1), 87-90.
-- Transportation Research Board (2016). *Highway Capacity Manual*, 6th Edition.
-- DNIT (2006). *Manual de Estudos de Tráfego*.
-- Brandes, U. (2001). A faster algorithm for betweenness centrality. *Journal of Mathematical Sociology*, 25(2), 163-177.
-- Sheffi, Y. (1985). *Urban Transportation Networks: Equilibrium Analysis with Mathematical Programming Methods*. Prentice-Hall.
-- Wardrop, J. G. (1952). Some theoretical aspects of road traffic research. *Proceedings of the Institution of Civil Engineers*, 1(3), 325-362.
-- Bureau of Public Roads (1964). *Traffic Assignment Manual*.
+* Boeing, G. (2017). OSMnx: New Methods for Acquiring, Constructing, Analyzing, and Visualizing Complex Street Networks. *Computers, Environment and Urban Systems*.
+* Dijkstra, E. W. (1959). A Note on Two Problems in Connexion with Graphs. *Numerische Mathematik*.
+* Hart, P. E., Nilsson, N. J., & Raphael, B. (1968). A Formal Basis for the Heuristic Determination of Minimum Cost Paths. *IEEE Transactions on Systems Science and Cybernetics*.
+* Bellman, R. (1958). On a Routing Problem. *Quarterly of Applied Mathematics*.
+* Bureau of Public Roads (1964). Traffic Assignment Manual.
+* Brandes, U. (2001). A Faster Algorithm for Betweenness Centrality. *Journal of Mathematical Sociology*.
+* Transportation Research Board (2016). *Highway Capacity Manual*, 6th Edition.
+* DNIT (2006). Manual de Estudos de Tráfego.
+
+---
+
+## 📌 Conclusão
+
+O RideSmart integra **modelagem de grafos + algoritmos de caminho mínimo + simulação de tráfego** para reproduzir, em escala reduzida, a lógica de roteamento de um aplicativo de mobilidade urbana sobre a malha viária real de Natal/RN. Os quatro algoritmos implementados convergiram para os mesmos resultados, validando a corretude da implementação; o A* se destacou em eficiência de busca, e o Dijkstra com Heap na velocidade geral. O modelo de trânsito sintético, por sua vez, não apenas elevou o tempo estimado de viagem em 30%, mas efetivamente mudou qual ponto de embarque é ótimo — evidenciando que o trânsito não é só um ajuste de custo, mas um fator que reformula a decisão de roteamento, como aconteceria em um aplicativo real de mobilidade.
