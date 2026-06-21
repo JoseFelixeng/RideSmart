@@ -36,13 +36,11 @@ RideSmart/
 ├── README.md
 │
 └── saidas/                      # Gerado automaticamente na execução
-    ├── mapa_transito_sintetico.png
-    ├── distribuicoes_trafego.png
-    ├── rotas_ridesmart.png
-    ├── rota_dijkstra_simples.png
-    ├── rota_dijkstra_heap.png
-    ├── rota_aastar.png
-    └── rota_bellman-ford.png
+    ├── mapa_transito_sintetico.png   # Mapa de Natal colorido por nível de congestionamento
+    ├── distribuicoes_trafego.png     # Histogramas: CF, fluxo OD, centralidade vs hotspot
+    ├── rotas_ridesmart.png           # Painel: Dijkstra Heap vs A* | Direto vs Com Embarque
+    ├── caminho_direto_AB.png         # Rota direta A→B isolada (baseline sem caminhada)
+    └── rotas_zoom_4algoritmos.png    # Zoom em A→P→B, um painel por algoritmo (2×2)
 ```
 
 ---
@@ -63,7 +61,7 @@ Todas as demais dependências (`heapq`, `math`, `random`, `time`) fazem parte da
 
 Abra `RideSmart.ipynb` e execute todas as células **em ordem** (`Ambiente de execução → Executar tudo`, no Colab, ou `Kernel → Restart & Run All`, no Jupyter). O notebook baixa o grafo viário de Natal/RN via OSMnx na primeira execução, esse passo pode levar alguns minutos dependendo da conexão.
 
-> ⚠️ Uma observação importante **A célula** do modelo de trânsito sintético (`apply_synthetic_traffic`) precisa rodar **depois** de qualquer célula que recrie o grafo `G` do zero. Caso contrário, o atributo `traffic_time` fica ausente nas arestas e o Cenário 3 falha silenciosamente. Rodar tudo em ordem, de cima para baixo, evita esse problema.
+> ⚠️ Uma observação importante **A célula** do modelo de trânsito sintético (`apply_synthetic_traffic`) precisa rodar **depois** de qualquer célula que recrie o grafo `G` do zero, e **apenas uma vez** por execução — chamá-la novamente em uma célula de visualização recalcula a centralidade do zero (custosa) e sobrescreve o período de tráfego já definido. Caso a célula seja pulada ou o grafo recriado sem reaplicá-la, o atributo `traffic_time` fica ausente nas arestas e o Cenário 3 falha silenciosamente. Rodar tudo em ordem, de cima para baixo, evita esse problema.
 
 ---
 
@@ -71,11 +69,11 @@ Abra `RideSmart.ipynb` e execute todas as células **em ordem** (`Ambiente de ex
 
 1. **Aquisição do grafo** — download da malha viária de Natal/RN via `ox.graph_from_place`, nos modos `drive` (carro) e `walk` (pedestre).
 2. **Coleta de pontos de embarque** — POIs de táxi e estacionamento via `ox.features.features_from_place`, mapeados para os nós mais próximos do grafo de carro.
-3. **Modelo de trânsito sintético** — classificação das vias (incluindo identificação de BRs federais), atribuição de capacidade (HCM), centralidade de intermediação (Brandes), hotspots geográficos ancorados nos principais corredores da cidade, fluxo OD sintético e função BPR calibrada por categoria de via.
+3. **Modelo de trânsito sintético** — classificação das vias (incluindo identificação de BRs federais), atribuição de capacidade (HCM), centralidade de intermediação calculada por amostragem (`k=300`, método de Brandes) para viabilizar o tempo de execução em um grafo urbano de larga escala, hotspots geográficos com decaimento gaussiano calibrado em escala real (`σ ≈ 1,3 km`) e ancorados nos principais corredores da cidade, fluxo OD sintético e função BPR calibrada por categoria de via.
 4. **Implementação dos algoritmos** — Dijkstra simples (O(V²)), Dijkstra com heap (O((V+E) log V)), A* com heurística Haversine, e Bellman-Ford como algoritmo adicional da literatura.
 5. **Seleção do ponto de embarque** — busca do `P` ótimo entre os candidatos alcançáveis a pé, minimizando o custo total da rota composta.
 6. **Comparação dos 5 cenários** — menor distância, mais rápido sem trânsito, mais rápido com trânsito sintético, rota direta sem caminhada, e ganho obtido ao caminhar.
-7. **Visualização** — mapa de congestionamento da cidade, histogramas de distribuição do modelo de tráfego, e um painel individual por algoritmo mostrando a rota A→P→B sobre o grafo.
+7. **Visualização** — mapa de congestionamento da cidade, histogramas de distribuição do modelo de tráfego, um plot dedicado do caminho direto A→B (baseline sem caminhada), e um painel individual por algoritmo mostrando a rota A→P→B sobre o grafo.
 
 ---
 
@@ -133,6 +131,8 @@ Os quatro algoritmos convergiram para exatamente a mesma distância, validando a
 | 4 — Direto, sem caminhada | — | — | — | 19.155,8 m |
 | 5 — Ganho ao caminhar | — | — | — | **+111,4 m** (positivo) |
 
+> O Cenário 4 (rota direta A→B, sem caminhada) é visualizado isoladamente em `caminho_direto_AB.png` — um plot dedicado mostrando apenas a rota de carro entre origem e destino, usado como baseline visual para os demais cenários.
+
 O trânsito sintético elevou o custo total da rota em **+30,1%** em relação ao cenário sem trânsito (1.583,1 s vs. 1.216,8 s), e **deslocou o ponto de embarque ótimo** de um nó para outro completamente diferente (`502216497` → `3801130604`) — evidência direta de que o modelo de tráfego influencia a decisão de roteamento, não apenas o tempo total estimado.
 
 ### Modelo de trânsito sintético
@@ -154,6 +154,7 @@ As BRs concentram o maior congestionamento sintético da cidade, como esperado d
 ## 🔍 Análise Crítica e Limitações
 
 * O modelo de trânsito é sintético, calibrado por proxies (capacidade HCM, centralidade, hotspots geográficos), não por dados reais de tráfego.
+* A centralidade de intermediação é calculada por amostragem (`k=300` nós-fonte) em vez do algoritmo exato — necessário para viabilizar o tempo de execução em um grafo com ~18 mil nós, mas introduz uma aproximação estatística nos valores de `betweenness` por aresta.
 * O Cenário 3 depende da execução prévia, sobre o mesmo objeto `G`, da célula de trânsito sintético — se o grafo for recriado sem reaplicar o modelo, o atributo `traffic_time` fica ausente e a busca falha silenciosamente, retornando "sem candidatos" mesmo havendo pontos de embarque válidos.
 * Os Cenários 2 e 3 filtram candidatos comparando `max_walk_m` (configurado em metros) contra `travel_time`, que está em **segundos** — uma mistura de unidades que torna o limite de caminhada efetivamente mais permissivo (~700 m a ~1,4 m/s) do que os 500 m nominais usados no Cenário 1.
 * A busca do ponto de embarque ótimo roda um Dijkstra completo por candidato dentro de um laço; com centenas de candidatos isso já custa dezenas de segundos por cenário — uma busca única a partir do destino, no grafo invertido, reduziria esse custo para frações de segundo.
