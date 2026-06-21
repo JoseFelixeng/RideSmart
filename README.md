@@ -1,6 +1,6 @@
 # 🚗 RideSmart — Modelagem e Análise de Rotas Urbanas com Grafos
 
-Projeto final desenvolvido para a disciplina de **Teoria dos Grafos**, com o objetivo de simular a lógica de escolha de rota de um aplicativo de mobilidade urbana sobre a malha viária real de **Natal/RN**, usando grafos, algoritmos de caminho mínimo e um modelo de trânsito sintético.
+Projeto final desenvolvido para a disciplina de **Algoritmos e Estrutura de Dados II**, com o objetivo de simular a lógica de escolha de rota de um aplicativo de mobilidade urbana sobre a malha viária real de **Natal/RN**, usando grafos, algoritmos de caminho mínimo e um modelo de trânsito sintético.
 
 ---
 
@@ -15,7 +15,7 @@ Projeto final desenvolvido para a disciplina de **Teoria dos Grafos**, com o obj
 
 ## 🎯 Objetivo
 
-Dado um ponto de origem `A`, um destino `B` e uma distância máxima de caminhada `X`, o sistema escolhe o melhor ponto de embarque `P` (acessível a pé a partir de `A`, dentro do limite `X`) tal que a rota completa **A → P (caminhada) → P → B (carro)** seja a mais vantajosa, segundo diferentes critérios de custo.
+Dado um ponto de origem `A`, um destino `B` e uma distância máxima de caminhada `X`, o sistema escolhe o melhor ponto de embarque `P` (acessível a pé a partir de `A`, dentro do limite `X`) tal que a rota completa **A → P (caminhada) → P → B (carro)** seja a mais vantajosa, seguindo diferentes critérios de custo.
 
 O projeto cobre:
 
@@ -49,7 +49,7 @@ RideSmart/
 
 ## ⚙️ Instalação
 
-O notebook foi desenvolvido para rodar em **Google Colab** ou **Jupyter local** (Python 3.11).
+O notebook foi desenvolvido para rodar em **Google Colab** ou no **Jupyter Notebook** (Python 3.11).
 
 ```bash
 pip install osmnx networkx matplotlib numpy
@@ -61,9 +61,9 @@ Todas as demais dependências (`heapq`, `math`, `random`, `time`) fazem parte da
 
 ## ▶️ Execução
 
-Abra `RideSmart.ipynb` e execute todas as células **em ordem** (`Ambiente de execução → Executar tudo`, no Colab, ou `Kernel → Restart & Run All`, no Jupyter). O notebook baixa o grafo viário de Natal/RN via OSMnx na primeira execução — esse passo pode levar alguns minutos dependendo da conexão.
+Abra `RideSmart.ipynb` e execute todas as células **em ordem** (`Ambiente de execução → Executar tudo`, no Colab, ou `Kernel → Restart & Run All`, no Jupyter). O notebook baixa o grafo viário de Natal/RN via OSMnx na primeira execução, esse passo pode levar alguns minutos dependendo da conexão.
 
-> ⚠️ A célula do modelo de trânsito sintético (`apply_synthetic_traffic`) precisa rodar **depois** de qualquer célula que recrie o grafo `G` do zero. Caso contrário, o atributo `traffic_time` fica ausente nas arestas e o Cenário 3 falha silenciosamente. Rodar tudo em ordem, de cima para baixo, evita esse problema.
+> ⚠️ Uma observação importante **A célula** do modelo de trânsito sintético (`apply_synthetic_traffic`) precisa rodar **depois** de qualquer célula que recrie o grafo `G` do zero. Caso contrário, o atributo `traffic_time` fica ausente nas arestas e o Cenário 3 falha silenciosamente. Rodar tudo em ordem, de cima para baixo, evita esse problema.
 
 ---
 
@@ -104,7 +104,7 @@ O grafo de carro (`G`) e o grafo pedestre (`G_walk`) são tratados separadamente
 
 ---
 
-## 📊 Resultados (última execução)
+## 📊 Resultados
 
 **Grafo de Natal/RN:** 18.581 nós, 48.193 arestas. 691 POIs de embarque coletados (19 táxis + 672 estacionamentos), mapeados para 570 nós únicos.
 
@@ -188,4 +188,4 @@ As BRs concentram o maior congestionamento sintético da cidade, como esperado d
 
 ## 📌 Conclusão
 
-O RideSmart integra **modelagem de grafos + algoritmos de caminho mínimo + simulação de tráfego** para reproduzir, em escala reduzida, a lógica de roteamento de um aplicativo de mobilidade urbana sobre a malha viária real de Natal/RN. Os quatro algoritmos implementados convergiram para os mesmos resultados, validando a corretude da implementação; o A* se destacou em eficiência de busca, e o Dijkstra com Heap na velocidade geral. O modelo de trânsito sintético, por sua vez, não apenas elevou o tempo estimado de viagem em 30%, mas efetivamente mudou qual ponto de embarque é ótimo — evidenciando que o trânsito não é só um ajuste de custo, mas um fator que reformula a decisão de roteamento, como aconteceria em um aplicativo real de mobilidade.
+O RideSmart integra **modelagem de grafos + algoritmos de caminho mínimo + simulação de tráfego** para reproduzir, em escala reduzida, a lógica de roteamento de um aplicativo de mobilidade urbana sobre a malha viária real de Natal/RN. Os quatro algoritmos implementados convergiram para os mesmos resultados, validando a corretude da implementação. O A* se destacou em eficiência de busca, e o Dijkstra com Heap na velocidade geral. O modelo de trânsito sintético, por sua vez, não apenas elevou o tempo estimado de viagem em 30%, mas efetivamente mudou qual ponto de embarque é ótimo — evidenciando que o trânsito não é só um ajuste de custo, mas um fator que reformula a decisão de roteamento, como aconteceria em um aplicativo real de mobilidade.
