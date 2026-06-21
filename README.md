@@ -6,12 +6,10 @@ Projeto final desenvolvido para a disciplina de **Teoria dos Grafos**, com o obj
 
 ## 👨‍💻 Integrantes
 
-* Felipe Gabriel
-* José Felix
-* Laize
-* Lucas Henrique Alves de Queiroz
-
-> ⚠️ Nomes completos pendentes de confirmação — ver observação ao final deste documento.
+* Felipe Gabriel Bezerra Da Silva
+* José Felix Rodrigues Anselmo
+* Laíze Suélia da Silva Oliveira
+* Lucas Henrique Alvez De Queiroz
 
 ---
 
