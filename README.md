@@ -27,6 +27,15 @@ O projeto cobre:
 
 ---
 
+## Modeleagem do Problema
+O sistema foi modelado como um grafo direcionado ponderado, representando a malha viária da cidade de Natal/RN obtida por meio da biblioteca OSMnx, utilizando dados do OpenStreetMap. Nesse modelo, cada nó representa uma interseção ou ponto da via, enquanto cada aresta representa um segmento de rua, contendo atributos como comprimento (length), velocidade média (speed_kph) e tempo estimado de deslocamento (travel_time).
+
+Foram utilizados dois grafos distintos: um grafo viário para simular o deslocamento de veículos (network_type="drive") e um grafo de caminhada para representar os trajetos realizados pelos usuários até os pontos de embarque (network_type="walk"). Dessa forma, o modelo consegue diferenciar os custos de deslocamento para pedestres e veículos.
+
+Os pesos das arestas variam conforme o cenário avaliado, podendo representar distância percorrida ou tempo de viagem. Além disso, foi realizada uma classificação das vias principais (BR-101, BR-226 e BR-406), permitindo a simulação de diferentes condições de tráfego por meio da alteração dos tempos de deslocamento dessas vias.
+
+---
+
 ## 📂 Estrutura do Projeto
 
 ```
