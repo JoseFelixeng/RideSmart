@@ -43,7 +43,8 @@ RideSmart/
 │
 ├── RideSmart.ipynb              # Notebook principal, executável de ponta a ponta
 ├── README.md
-│
+└── Relatorio/   
+│    ├── Relatorio3.pdf # Arquivo do projeto no Formato PDF em conformidade com a tarefa
 └── saidas/                      # Gerado automaticamente na execução
     ├── mapa_transito_sintetico.png   # Mapa de Natal colorido por nível de congestionamento
     ├── distribuicoes_trafego.png     # Histogramas: CF, fluxo OD, centralidade vs hotspot
